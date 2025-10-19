@@ -1,5 +1,5 @@
 import { collection, query, orderBy, limit, getDocs, QueryDocumentSnapshot } from 'firebase/firestore';
-import { db } from './config';
+import { db, isFirebaseConfigured } from './config';
 import { Video } from '../types/video';
 
 const VIDEOS_COLLECTION = 'videos';
@@ -10,6 +10,12 @@ const VIDEOS_COLLECTION = 'videos';
  * @returns Array of videos
  */
 export const fetchVideos = async (limitCount: number = 20): Promise<Video[]> => {
+  // Check if Firebase is configured
+  if (!isFirebaseConfigured() || !db) {
+    console.log('Firebase not configured, using mock videos');
+    return getMockVideos();
+  }
+
   try {
     const videosQuery = query(
       collection(db, VIDEOS_COLLECTION),
