@@ -6,12 +6,27 @@
   -webkit-text-size-adjust: 100%;
 }
 
-html, body, #root {
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Allow scrolling on admin page, prevent on video feed */
+body:has(.video-feed) {
   overflow: hidden;
+}
+
+body:has(.admin-panel) {
+  overflow-y: auto;
 }
 
 * {

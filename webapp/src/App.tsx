@@ -1,7 +1,12 @@
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import VideoFeed from './components/VideoFeed';
+import AdminPanel from './components/AdminPanel';
 import './App.css';
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  const isAdmin = location.pathname === '/admin';
+
   return (
     <div className="app">
       <header className="app-header">
@@ -11,9 +16,32 @@ function App() {
           </svg>
           <span>TopTop</span>
         </div>
+        
+        <nav className="app-nav">
+          <Link to="/" className={!isAdmin ? 'active' : ''}>
+            Feed
+          </Link>
+          <Link to="/admin" className={isAdmin ? 'active' : ''}>
+            Admin
+          </Link>
+        </nav>
       </header>
-      <VideoFeed />
+      
+      <main className="app-content">
+        <Routes>
+          <Route path="/" element={<VideoFeed />} />
+          <Route path="/admin" element={<AdminPanel />} />
+        </Routes>
+      </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
