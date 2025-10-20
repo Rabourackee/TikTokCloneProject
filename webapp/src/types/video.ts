@@ -75,3 +75,45 @@ export interface UserSession {
   location?: UserInteraction['location'];
 }
 
+export interface UserInteractionEvent {
+  id: string;
+  username: string;
+  sessionId: string;
+  videoId: string;
+  videoCaption: string;
+  interactionType: 'view' | 'like' | 'comment' | 'share' | 'play' | 'pause' | 'complete';
+  timestamp: string;
+  watchDuration?: number; // in seconds
+  deviceInfo: {
+    userAgent: string;
+    platform: string;
+    screenWidth: number;
+    screenHeight: number;
+  };
+}
+
+export interface AnalyticsSummary {
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  totalUsers: number;
+  totalWatchTime: number;
+  averageWatchTime: number;
+  topVideos: {
+    videoId: string;
+    caption: string;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+  }[];
+  userActivity: {
+    username: string;
+    sessionId: string;
+    interactions: number;
+    videosWatched: number;
+    totalWatchTime: number;
+  }[];
+}
+

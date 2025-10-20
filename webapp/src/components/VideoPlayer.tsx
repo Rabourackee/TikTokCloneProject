@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Video } from '../types/video';
+import { useUser } from '../contexts/UserContext';
+import { trackInteraction } from '../services/analyticsService';
 import './VideoPlayer.css';
 
 interface VideoPlayerProps {
@@ -11,6 +13,12 @@ const VideoPlayer = ({ video, isActive }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [hasTrackedView, setHasTrackedView] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
+  const watchStartTime = useRef<number | null>(null);
+  const totalWatchTime = useRef<number>(0);
+  
+  const { username, sessionId } = useUser();
 
   // Auto-play/pause based on whether this video is in view
   useEffect(() => {
@@ -18,25 +26,79 @@ const VideoPlayer = ({ video, isActive }: VideoPlayerProps) => {
     if (!videoElement) return;
 
     if (isActive) {
+      // Track view when video becomes active (only once)
+      if (!hasTrackedView && username) {
+        trackInteraction(username, sessionId, video.id, video.caption, 'view');
+        setHasTrackedView(true);
+      }
+      
+      // Start watch timer
+      watchStartTime.current = Date.now();
+      
       videoElement.play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          setIsPlaying(true);
+          if (username) {
+            trackInteraction(username, sessionId, video.id, video.caption, 'play');
+          }
+        })
         .catch(err => console.error('Error playing video:', err));
     } else {
+      // Calculate and save watch duration
+      if (watchStartTime.current !== null) {
+        const duration = (Date.now() - watchStartTime.current) / 1000;
+        totalWatchTime.current += duration;
+        watchStartTime.current = null;
+      }
+      
       videoElement.pause();
       setIsPlaying(false);
+      if (username) {
+        trackInteraction(username, sessionId, video.id, video.caption, 'pause', totalWatchTime.current);
+      }
     }
-  }, [isActive]);
+  }, [isActive, username, sessionId, video.id, video.caption, hasTrackedView]);
+  
+  // Track video completion
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+    
+    const handleEnded = () => {
+      if (username) {
+        const duration = totalWatchTime.current + (watchStartTime.current ? (Date.now() - watchStartTime.current) / 1000 : 0);
+        trackInteraction(username, sessionId, video.id, video.caption, 'complete', duration);
+      }
+    };
+    
+    videoElement.addEventListener('ended', handleEnded);
+    return () => videoElement.removeEventListener('ended', handleEnded);
+  }, [username, sessionId, video.id, video.caption]);
 
   const handlePlayPause = () => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
     if (isPlaying) {
+      // Calculate watch duration when pausing
+      if (watchStartTime.current !== null) {
+        const duration = (Date.now() - watchStartTime.current) / 1000;
+        totalWatchTime.current += duration;
+        watchStartTime.current = null;
+      }
+      
       videoElement.pause();
       setIsPlaying(false);
+      if (username) {
+        trackInteraction(username, sessionId, video.id, video.caption, 'pause', totalWatchTime.current);
+      }
     } else {
+      watchStartTime.current = Date.now();
       videoElement.play();
       setIsPlaying(true);
+      if (username) {
+        trackInteraction(username, sessionId, video.id, video.caption, 'play');
+      }
     }
   };
 
@@ -92,21 +154,46 @@ const VideoPlayer = ({ video, isActive }: VideoPlayerProps) => {
 
       {/* Action Buttons */}
       <div className="action-buttons">
-        <button className="action-btn" onClick={(e) => { e.stopPropagation(); }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <button 
+          className={`action-btn ${hasLiked ? 'liked' : ''}`}
+          onClick={(e) => { 
+            e.stopPropagation();
+            if (username && !hasLiked) {
+              trackInteraction(username, sessionId, video.id, video.caption, 'like');
+              setHasLiked(true);
+            }
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill={hasLiked ? "red" : "none"} stroke="white" strokeWidth="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
-          <span className="action-count">{formatNumber(video.likes)}</span>
+          <span className="action-count">{formatNumber(video.likes + (hasLiked ? 1 : 0))}</span>
         </button>
 
-        <button className="action-btn" onClick={(e) => { e.stopPropagation(); }}>
+        <button 
+          className="action-btn"
+          onClick={(e) => { 
+            e.stopPropagation();
+            if (username) {
+              trackInteraction(username, sessionId, video.id, video.caption, 'comment');
+            }
+          }}
+        >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           <span className="action-count">{formatNumber(video.comments)}</span>
         </button>
 
-        <button className="action-btn" onClick={(e) => { e.stopPropagation(); }}>
+        <button 
+          className="action-btn"
+          onClick={(e) => { 
+            e.stopPropagation();
+            if (username) {
+              trackInteraction(username, sessionId, video.id, video.caption, 'share');
+            }
+          }}
+        >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
             <circle cx="18" cy="5" r="3" />
             <circle cx="6" cy="12" r="3" />
