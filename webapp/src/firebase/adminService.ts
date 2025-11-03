@@ -8,6 +8,9 @@ import {
   getAllMockVideoAnalytics,
   getMockVideoAnalytics,
   getMockUserSessions,
+  addMockVideo,
+  updateMockVideo,
+  deleteMockVideo,
 } from './mockDataStore';
 
 const VIDEOS_COLLECTION = 'videos';
@@ -157,6 +160,64 @@ export const fetchUserSessions = async (): Promise<UserSession[]> => {
   } catch (error) {
     console.error('Error fetching user sessions:', error);
     return getMockUserSessions();
+  }
+};
+
+/**
+ * Add a new video
+ */
+export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'feedOrder'>): Promise<Video> => {
+  if (!isFirebaseConfigured() || !db) {
+    console.log('Firebase not configured, adding to mock data');
+    return addMockVideo(video);
+  }
+
+  try {
+    // In a real Firebase implementation, you would add to Firestore
+    // For now, use mock data
+    return addMockVideo(video);
+  } catch (error) {
+    console.error('Error adding video:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update video details
+ */
+export const updateVideo = async (videoId: string, updates: Partial<Omit<Video, 'id' | 'createdAt'>>): Promise<Video | null> => {
+  if (!isFirebaseConfigured() || !db) {
+    console.log('Firebase not configured, updating mock data');
+    return updateMockVideo(videoId, updates);
+  }
+
+  try {
+    // In a real Firebase implementation, you would update in Firestore
+    const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
+    await updateDoc(videoRef, updates as any);
+    return updateMockVideo(videoId, updates);
+  } catch (error) {
+    console.error('Error updating video:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a video
+ */
+export const deleteVideo = async (videoId: string): Promise<boolean> => {
+  if (!isFirebaseConfigured() || !db) {
+    console.log('Firebase not configured, deleting from mock data');
+    return deleteMockVideo(videoId);
+  }
+
+  try {
+    // In a real Firebase implementation, you would delete from Firestore
+    // For now, use mock data
+    return deleteMockVideo(videoId);
+  } catch (error) {
+    console.error('Error deleting video:', error);
+    throw error;
   }
 };
 

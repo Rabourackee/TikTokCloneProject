@@ -4,18 +4,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #000;
   padding: 20px;
 }
 
 .signin-box {
   width: 100%;
   max-width: 440px;
-  background: white;
+  background: #1a1a1a;
   border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
   overflow: hidden;
   animation: slideIn 0.5s ease-out;
+  border: 1px solid #333;
 }
 
 @keyframes slideIn {
@@ -32,8 +33,9 @@
 .signin-logo {
   padding: 40px 40px 20px;
   text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #000;
   color: white;
+  border-bottom: 1px solid #333;
 }
 
 .signin-logo svg {
@@ -56,13 +58,13 @@
   margin: 0 0 8px 0;
   font-size: 28px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #fff;
 }
 
 .signin-content p {
   margin: 0 0 32px 0;
   font-size: 16px;
-  color: #666;
+  color: #999;
 }
 
 .signin-form {
@@ -80,22 +82,24 @@
 .form-group label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
 }
 
 .form-group input {
   padding: 14px 16px;
   font-size: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #333;
   border-radius: 12px;
   transition: all 0.3s;
   font-family: inherit;
+  background: #0a0a0a;
+  color: #fff;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
 }
 
 .form-group input.error {
@@ -120,35 +124,36 @@
   padding: 16px 32px;
   font-size: 16px;
   font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #000;
+  background: #fff;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
 }
 
 .signin-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.5);
+  background: #f0f0f0;
 }
 
 .signin-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
 }
 
 .signin-footer {
   padding: 20px 40px;
-  background: #f8f8f8;
-  border-top: 1px solid #e0e0e0;
+  background: #0a0a0a;
+  border-top: 1px solid #333;
 }
 
 .signin-footer p {
   margin: 0;
   font-size: 12px;
-  color: #999;
+  color: #666;
   text-align: center;
   line-height: 1.5;
 }

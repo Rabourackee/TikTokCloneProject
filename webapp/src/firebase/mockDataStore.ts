@@ -155,6 +155,50 @@ export const resetMockVideos = (): void => {
   mockVideos = [...initialMockVideos];
 };
 
+/**
+ * Add a new video to mock store
+ */
+export const addMockVideo = (video: Omit<Video, 'id' | 'createdAt' | 'feedOrder'>): Video => {
+  const newVideo: Video = {
+    ...video,
+    id: `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    createdAt: new Date(),
+    feedOrder: mockVideos.length,
+    isVisible: video.isVisible !== undefined ? video.isVisible : true,
+  };
+  mockVideos.push(newVideo);
+  return newVideo;
+};
+
+/**
+ * Update an existing video in mock store
+ */
+export const updateMockVideo = (videoId: string, updates: Partial<Omit<Video, 'id' | 'createdAt'>>): Video | null => {
+  const index = mockVideos.findIndex(v => v.id === videoId);
+  if (index === -1) return null;
+  
+  mockVideos[index] = {
+    ...mockVideos[index],
+    ...updates,
+  };
+  return mockVideos[index];
+};
+
+/**
+ * Delete a video from mock store
+ */
+export const deleteMockVideo = (videoId: string): boolean => {
+  const index = mockVideos.findIndex(v => v.id === videoId);
+  if (index === -1) return false;
+  
+  mockVideos.splice(index, 1);
+  // Reorder remaining videos
+  mockVideos.forEach((video, idx) => {
+    video.feedOrder = idx;
+  });
+  return true;
+};
+
 // ===== USER INTERACTION TRACKING =====
 
 // Generate mock user interactions

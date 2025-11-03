@@ -72,12 +72,22 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
 .admin-instructions {
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem;
   border-radius: 8px;
-  margin-bottom: 2rem;
   border-left: 3px solid #FE2C55;
+  flex: 1;
+  min-width: 250px;
 }
 
 .admin-instructions p {
@@ -85,6 +95,29 @@
   font-size: 0.9rem;
   opacity: 0.8;
   color: white;
+}
+
+.btn-add-video {
+  background: #FE2C55;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-add-video:hover {
+  background: #d11d43;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(254, 44, 85, 0.3);
+}
+
+.btn-add-video:active {
+  transform: translateY(0);
 }
 
 .video-list {
@@ -193,7 +226,13 @@
   color: white;
 }
 
-.visibility-toggle {
+.video-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.action-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -202,11 +241,29 @@
   opacity: 0.7;
   transition: all 0.2s ease;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.edit-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 .visibility-toggle:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
 }
 
 .admin-loading,
@@ -571,6 +628,23 @@
     flex: 1;
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
+  }
+
+  .admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-instructions {
+    width: 100%;
+  }
+
+  .btn-add-video {
+    width: 100%;
+  }
+
+  .video-actions {
+    flex-wrap: wrap;
   }
 
   .analytics-metrics {
