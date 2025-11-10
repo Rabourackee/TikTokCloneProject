@@ -117,3 +117,12 @@ export interface AnalyticsSummary {
   }[];
 }
 
+// Video grouping for Sora-style horizontal swiping
+export interface VideoGroup {
+  id: string;
+  username: string;
+  caption: string;
+  videos: Video[];
+  groupOrder: number; // Order in the feed (for vertical scrolling)
+}
+

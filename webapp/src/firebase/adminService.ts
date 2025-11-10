@@ -2,7 +2,7 @@ import { collection, query, getDocs, doc, updateDoc, writeBatch } from 'firebase
 import { db, isFirebaseConfigured } from './config';
 import { Video, VideoAnalytics, UserSession } from '../types/video';
 import { 
-  getMockVideos, 
+  getMockVideosAsync, 
   updateMockVideoVisibility, 
   batchUpdateMockVideoOrders,
   getAllMockVideoAnalytics,
@@ -20,8 +20,8 @@ const VIDEOS_COLLECTION = 'videos';
  */
 export const fetchAllVideos = async (): Promise<Video[]> => {
   if (!isFirebaseConfigured() || !db) {
-    console.log('Firebase not configured, using mock videos');
-    return getMockVideos();
+    console.log('Firebase not configured, using mock videos from JSON');
+    return await getMockVideosAsync();
   }
 
   try {
@@ -50,7 +50,7 @@ export const fetchAllVideos = async (): Promise<Video[]> => {
     return videos.sort((a, b) => (a.feedOrder || 0) - (b.feedOrder || 0));
   } catch (error) {
     console.error('Error fetching all videos:', error);
-    return getMockVideos();
+    return await getMockVideosAsync();
   }
 };
 

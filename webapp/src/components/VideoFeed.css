@@ -12,11 +12,74 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
-.video-container {
+/* Group container for vertical scrolling */
+.video-group-container {
   width: 100%;
   height: 100vh;
   scroll-snap-align: start;
   position: relative;
+  overflow: hidden;
+}
+
+/* Horizontal scrolling container for videos in the same group */
+.video-row-horizontal {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.video-row-horizontal::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Individual video container */
+.video-container {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100vh;
+  scroll-snap-align: start;
+  position: relative;
+}
+
+/* Pagination dots */
+.video-pagination-dots {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.pagination-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.2);
+}
+
+.pagination-dot.active {
+  background: #fff;
+  width: 24px;
+  border-radius: 4px;
 }
 
 /* Loading State */

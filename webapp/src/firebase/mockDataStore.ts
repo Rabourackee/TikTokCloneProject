@@ -1,9 +1,56 @@
-import { Video, UserInteraction, VideoAnalytics, UserSession } from '../types/video';
+import { Video, UserInteraction, VideoAnalytics, UserSession, VideoGroup } from '../types/video';
+
+// Interface for the JSON data structure
+interface JsonVideoData {
+  id: number;
+  username: string;
+  handle: string | null;
+  caption: string;
+  likes: number | null;
+  comments: number;
+  shares: number;
+  video_url: string;
+  thumbnail_url: string;
+  page_url: string;
+}
 
 /**
  * Shared mock data store for development mode
  * This persists video state (order, visibility) across admin and feed pages
  */
+
+/**
+ * Load videos from JSON file
+ */
+const loadVideosFromJson = async (): Promise<Video[]> => {
+  try {
+    // URL encode the filename to handle spaces and special characters
+    const jsonPath = '/videos_in_url/sora_feed_metadata%20(7).json';
+    const response = await fetch(jsonPath);
+    if (!response.ok) {
+      throw new Error(`Failed to load videos JSON: ${response.status} ${response.statusText}`);
+    }
+    const jsonData: JsonVideoData[] = await response.json();
+    
+    // Transform JSON data to Video format
+    return jsonData.map((item, index) => ({
+      id: item.id.toString(),
+      url: item.video_url,
+      caption: item.caption || 'Amazing video! 🎥',
+      likes: item.likes || Math.floor(Math.random() * 5000) + 1000,
+      comments: item.comments || 0,
+      shares: item.shares || 0,
+      username: item.username || 'unknown_user',
+      userAvatar: `https://i.pravatar.cc/150?img=${(item.id % 70) + 1}`,
+      createdAt: new Date(),
+      isVisible: true,
+      feedOrder: index,
+    }));
+  } catch (error) {
+    console.error('Error loading videos from JSON:', error);
+    return [];
+  }
+};
 
 // Helper function to generate random device info
 const generateDeviceInfo = () => {
@@ -43,7 +90,7 @@ const generateLocation = () => {
 const initialMockVideos: Video[] = [
   {
     id: '1',
-    url: '/videos/19700121_0428_6907ca9e5b248191bbf265b937deb694.mp4',
+    url: 'https://firebasestorage.googleapis.com/v0/b/sampele-c950a.firebasestorage.app/o/34e772f6cd5bf10_00000000-ab48-7284-9ac1-7dc270aaeaab%252Fdrvs%252Fmd%252Fraw.mp4?alt=media&token=e920b749-0032-4d41-a982-08ebfaa2c537',
     caption: 'Amazing video 🎥 #viral #trending',
     likes: 1250,
     comments: 89,
@@ -173,8 +220,40 @@ const initialMockVideos: Video[] = [
   },
 ];
 
-// In-memory store for mock videos
-let mockVideos: Video[] = [...initialMockVideos];
+// In-memory store for mock videos - will be loaded from JSON
+let mockVideos: Video[] = [];
+let mockInteractions: UserInteraction[] = [];
+let loadingPromise: Promise<void> | null = null;
+
+// Initialize video loading
+const initializeVideos = (): Promise<void> => {
+  if (!loadingPromise) {
+    loadingPromise = loadVideosFromJson().then(videos => {
+      if (videos.length > 0) {
+        mockVideos = videos;
+        console.log(`✅ Loaded ${videos.length} videos from JSON file`);
+      } else {
+        console.warn('⚠️ No videos found in JSON file, using fallback data');
+        // Use fallback data if JSON is empty
+        mockVideos = [...initialMockVideos];
+      }
+      // Generate mock interactions after videos are loaded
+      mockInteractions = generateMockInteractions();
+      console.log(`✅ Generated ${mockInteractions.length} mock interactions`);
+    }).catch(error => {
+      console.error('❌ Failed to initialize videos from JSON:', error);
+      console.log('Using fallback video data');
+      // Use fallback data on error
+      mockVideos = [...initialMockVideos];
+      // Generate mock interactions after fallback videos are loaded
+      mockInteractions = generateMockInteractions();
+    });
+  }
+  return loadingPromise;
+};
+
+// Start loading immediately
+initializeVideos();
 
 /**
  * Get all mock videos (for admin panel)
@@ -190,6 +269,79 @@ export const getVisibleMockVideos = (): Video[] => {
   return mockVideos
     .filter(video => video.isVisible !== false)
     .sort((a, b) => (a.feedOrder || 0) - (b.feedOrder || 0));
+};
+
+/**
+ * Get all mock videos asynchronously (waits for loading to complete)
+ */
+export const getMockVideosAsync = async (): Promise<Video[]> => {
+  await initializeVideos();
+  return getMockVideos();
+};
+
+/**
+ * Get visible mock videos asynchronously (waits for loading to complete)
+ */
+export const getVisibleMockVideosAsync = async (): Promise<Video[]> => {
+  await initializeVideos();
+  return getVisibleMockVideos();
+};
+
+/**
+ * Group videos by username and caption for Sora-style horizontal swiping
+ * Videos with the same username AND caption will be grouped together
+ */
+export const groupVideosByUserAndCaption = (videos: Video[]): VideoGroup[] => {
+  // Create a map to group videos
+  const groupMap = new Map<string, Video[]>();
+  
+  videos.forEach(video => {
+    // Create a unique key for each username + caption combination
+    const key = `${video.username}|||${video.caption}`;
+    
+    if (!groupMap.has(key)) {
+      groupMap.set(key, []);
+    }
+    groupMap.get(key)!.push(video);
+  });
+  
+  // Convert map to array of VideoGroup objects
+  const groups: VideoGroup[] = [];
+  let groupOrder = 0;
+  
+  groupMap.forEach((videos, key) => {
+    const [username, caption] = key.split('|||');
+    groups.push({
+      id: `group_${groupOrder}`,
+      username,
+      caption,
+      videos: videos.sort((a, b) => (a.feedOrder || 0) - (b.feedOrder || 0)),
+      groupOrder: groupOrder++,
+    });
+  });
+  
+  // Sort groups by the feed order of their first video
+  return groups.sort((a, b) => {
+    const aFirstOrder = a.videos[0]?.feedOrder || 0;
+    const bFirstOrder = b.videos[0]?.feedOrder || 0;
+    return aFirstOrder - bFirstOrder;
+  });
+};
+
+/**
+ * Get grouped videos (for Sora-style feed)
+ */
+export const getGroupedMockVideos = (): VideoGroup[] => {
+  const visibleVideos = getVisibleMockVideos();
+  return groupVideosByUserAndCaption(visibleVideos);
+};
+
+/**
+ * Get grouped videos asynchronously (waits for loading to complete)
+ */
+export const getGroupedMockVideosAsync = async (): Promise<VideoGroup[]> => {
+  await initializeVideos();
+  return getGroupedMockVideos();
 };
 
 /**
@@ -271,6 +423,11 @@ const generateMockInteractions = (): UserInteraction[] => {
   const interactions: UserInteraction[] = [];
   const interactionTypes: UserInteraction['interactionType'][] = ['view', 'like', 'share', 'comment', 'watch_complete'];
   
+  // Only generate interactions if we have videos
+  if (mockVideos.length === 0) {
+    return interactions;
+  }
+  
   // Generate 100-200 random interactions across videos
   const numInteractions = Math.floor(Math.random() * 100) + 100;
   
@@ -295,9 +452,6 @@ const generateMockInteractions = (): UserInteraction[] => {
   
   return interactions;
 };
-
-// In-memory store for interactions
-let mockInteractions: UserInteraction[] = generateMockInteractions();
 
 /**
  * Get all interactions for a specific video

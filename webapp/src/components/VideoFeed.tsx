@@ -1,24 +1,34 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import VideoPlayer from './VideoPlayer';
-import { Video } from '../types/video';
-import { fetchVideos } from '../firebase/videoService';
+import { VideoGroup } from '../types/video';
+import { fetchGroupedVideos } from '../firebase/videoService';
 import './VideoFeed.css';
 
 const VideoFeed = () => {
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videoGroups, setVideoGroups] = useState<VideoGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const [activeVideoInGroup, setActiveVideoInGroup] = useState<Map<number, number>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Fetch videos on mount
+  // Fetch and group videos on mount
   useEffect(() => {
     const loadVideos = async () => {
       try {
         setLoading(true);
-        const fetchedVideos = await fetchVideos();
-        setVideos(fetchedVideos);
+        // Fetch grouped videos (Sora-style)
+        const groups = await fetchGroupedVideos();
+        setVideoGroups(groups);
+        
+        // Initialize active video index for each group
+        const initialActiveMap = new Map<number, number>();
+        groups.forEach((_, index) => {
+          initialActiveMap.set(index, 0); // Start at first video in each group
+        });
+        setActiveVideoInGroup(initialActiveMap);
+        
         setError(null);
       } catch (err) {
         console.error('Failed to load videos:', err);
@@ -46,21 +56,21 @@ const VideoFeed = () => {
     observerRef.current = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          const videoIndex = Number(entry.target.getAttribute('data-index'));
-          setActiveVideoIndex(videoIndex);
+          const groupIndex = Number(entry.target.getAttribute('data-group-index'));
+          setActiveGroupIndex(groupIndex);
         }
       });
     }, options);
 
-    // Observe all video elements
-    const videoElements = document.querySelectorAll('.video-container');
-    videoElements.forEach((element) => {
+    // Observe all group containers
+    const groupElements = document.querySelectorAll('.video-group-container');
+    groupElements.forEach((element) => {
       observerRef.current?.observe(element);
     });
   }, []);
 
   useEffect(() => {
-    if (videos.length > 0) {
+    if (videoGroups.length > 0) {
       setupObserver();
     }
 
@@ -69,7 +79,20 @@ const VideoFeed = () => {
         observerRef.current.disconnect();
       }
     };
-  }, [videos, setupObserver]);
+  }, [videoGroups, setupObserver]);
+
+  // Handle horizontal scroll within a group
+  const handleHorizontalScroll = (groupIndex: number, containerElement: HTMLElement) => {
+    const scrollLeft = containerElement.scrollLeft;
+    const containerWidth = containerElement.clientWidth;
+    const videoIndex = Math.round(scrollLeft / containerWidth);
+    
+    setActiveVideoInGroup(prev => {
+      const newMap = new Map(prev);
+      newMap.set(groupIndex, videoIndex);
+      return newMap;
+    });
+  };
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -77,18 +100,42 @@ const VideoFeed = () => {
       const container = containerRef.current;
       if (!container) return;
 
-      if (e.key === 'ArrowDown' && activeVideoIndex < videos.length - 1) {
-        const nextVideo = document.querySelector(`[data-index="${activeVideoIndex + 1}"]`);
-        nextVideo?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else if (e.key === 'ArrowUp' && activeVideoIndex > 0) {
-        const prevVideo = document.querySelector(`[data-index="${activeVideoIndex - 1}"]`);
-        prevVideo?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Vertical navigation (between groups)
+      if (e.key === 'ArrowDown' && activeGroupIndex < videoGroups.length - 1) {
+        const nextGroup = document.querySelector(`[data-group-index="${activeGroupIndex + 1}"]`);
+        nextGroup?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (e.key === 'ArrowUp' && activeGroupIndex > 0) {
+        const prevGroup = document.querySelector(`[data-group-index="${activeGroupIndex - 1}"]`);
+        prevGroup?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // Horizontal navigation (within a group)
+      else if (e.key === 'ArrowRight') {
+        const currentGroup = videoGroups[activeGroupIndex];
+        const currentVideoIndex = activeVideoInGroup.get(activeGroupIndex) || 0;
+        if (currentGroup && currentVideoIndex < currentGroup.videos.length - 1) {
+          const horizontalContainer = document.querySelector(
+            `[data-group-index="${activeGroupIndex}"] .video-row-horizontal`
+          ) as HTMLElement;
+          if (horizontalContainer) {
+            horizontalContainer.scrollBy({ left: window.innerWidth, behavior: 'smooth' });
+          }
+        }
+      } else if (e.key === 'ArrowLeft') {
+        const currentVideoIndex = activeVideoInGroup.get(activeGroupIndex) || 0;
+        if (currentVideoIndex > 0) {
+          const horizontalContainer = document.querySelector(
+            `[data-group-index="${activeGroupIndex}"] .video-row-horizontal`
+          ) as HTMLElement;
+          if (horizontalContainer) {
+            horizontalContainer.scrollBy({ left: -window.innerWidth, behavior: 'smooth' });
+          }
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeVideoIndex, videos.length]);
+  }, [activeGroupIndex, activeVideoInGroup, videoGroups]);
 
   if (loading) {
     return (
@@ -113,7 +160,7 @@ const VideoFeed = () => {
     );
   }
 
-  if (videos.length === 0) {
+  if (videoGroups.length === 0) {
     return (
       <div className="feed-empty">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -133,16 +180,57 @@ const VideoFeed = () => {
 
   return (
     <div className="video-feed" ref={containerRef}>
-      {videos.map((video, index) => (
+      {videoGroups.map((group, groupIndex) => (
         <div
-          key={video.id}
-          className="video-container"
-          data-index={index}
+          key={group.id}
+          className="video-group-container"
+          data-group-index={groupIndex}
         >
-          <VideoPlayer
-            video={video}
-            isActive={index === activeVideoIndex}
-          />
+          <div 
+            className="video-row-horizontal"
+            onScroll={(e) => handleHorizontalScroll(groupIndex, e.currentTarget)}
+          >
+            {group.videos.map((video, videoIndex) => (
+              <div
+                key={video.id}
+                className="video-container"
+                data-video-index={videoIndex}
+              >
+                <VideoPlayer
+                  video={video}
+                  isActive={
+                    groupIndex === activeGroupIndex && 
+                    videoIndex === (activeVideoInGroup.get(groupIndex) || 0)
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          
+          {/* Pagination dots for multiple videos in a group */}
+          {group.videos.length > 1 && (
+            <div className="video-pagination-dots">
+              {group.videos.map((_, index) => (
+                <div
+                  key={index}
+                  className={`pagination-dot ${
+                    index === (activeVideoInGroup.get(groupIndex) || 0) ? 'active' : ''
+                  }`}
+                  onClick={() => {
+                    const horizontalContainer = document.querySelector(
+                      `[data-group-index="${groupIndex}"] .video-row-horizontal`
+                    ) as HTMLElement;
+                    if (horizontalContainer) {
+                      horizontalContainer.scrollTo({
+                        left: index * window.innerWidth,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
